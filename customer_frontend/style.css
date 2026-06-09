@@ -1,0 +1,235 @@
+:root {
+    --baize-green: #1a4a2e;
+    --felt-green: #2d6a4f;
+    --chalk-white: #f0ede8;
+    --ball-red: #c0392b;
+    --ball-yellow: #f4d03f;
+    --ball-blue: #1a5276;
+    --ball-pink: #e91e8c;
+    --pocket-black: #0d0d0d;
+    --cue-brown: #8B5E3C;
+    --felt-light: #3d8b6a;
+}
+
+* { box-sizing: border-box; }
+body { 
+    font-family: 'Rajdhani', Arial, sans-serif;
+    background: var(--baize-green);
+    margin: 0;
+    padding: 10px;
+    color: var(--chalk-white);
+}
+
+.container {
+    max-width: 375px;
+    margin: auto;
+    background: #0d1f14;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    text-align: center;
+    margin: 0 0 5px;
+    color: var(--chalk-white);
+}
+
+.header .cafe-name {
+    text-align: center;
+    font-size: 14px;
+    color: var(--ball-yellow);
+    margin-bottom: 15px;
+}
+
+.search-bar {
+    margin: 15px 0;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--felt-green);
+    background: #1a2b1e;
+    color: var(--chalk-white);
+    font-size: 16px;
+}
+
+.category-section { margin: 15px 0; }
+
+.category-header {
+    background: var(--felt-green);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 4px solid var(--ball-yellow);
+}
+
+.category-header .cat-icon { font-size: 20px; }
+
+.menu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #2d3a2f;
+    background: #143222;
+    margin: 2px 0;
+    border-radius: 6px;
+}
+
+.item-info { flex: 1; }
+.item-name { font-weight: 600; display: block; color: var(--chalk-white); }
+.item-price { color: var(--ball-yellow); font-size: 14px; }
+
+.qty-controls { display: flex; align-items: center; gap: 10px; }
+
+.qty-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.qty-btn:active { transform: scale(0.9); }
+
+.qty-btn.plus { background: var(--felt-green); color: white; }
+.qty-btn.minus { background: var(--ball-red); color: white; }
+
+.qty { color: var(--chalk-white); font-weight: bold; min-width: 20px; text-align: center; }
+
+.cart-section {
+    position: sticky;
+    bottom: 60px;
+    background: var(--pocket-black);
+    padding: 12px;
+    border-radius: 12px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cart { 
+    font-weight: bold; 
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.total { color: var(--ball-yellow); font-size: 20px; }
+
+.special-requests {
+    margin-top: 10px;
+    padding: 10px;
+}
+
+.special-requests input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--felt-green);
+    background: #1a2b1e;
+    color: var(--chalk-white);
+    font-size: 14px;
+}
+
+.pulse {
+    background: var(--felt-green);
+    width: 100%;
+    padding: 16px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 15px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(45, 106, 79, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0); }
+}
+
+.success-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.success-overlay.hidden { display: none; }
+
+.success-content {
+    background: var(--felt-green);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 300px;
+}
+
+.success-content .snooker-animation {
+    font-size: 60px;
+    animation: spin 1s infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.success-content h2 { 
+    color: var(--chalk-white);
+    margin: 15px 0 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.success-content button {
+    background: var(--ball-yellow);
+    color: var(--pocket-black);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-weight: bold;
+    margin-top: 15px;
+    cursor: pointer;
+}
+
+.radio-group {
+    margin: 15px 0;
+    display: flex;
+    gap: 15px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--chalk-white);
+}
+
+input[type="radio"] { 
+    width: 20px;
+    height: 20px;
+    accent-color: var(--felt-green);
+}

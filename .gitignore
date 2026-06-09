@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+snooker_auto/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# QR Codes
+qr_codes/*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archive
+data/archive_*.db

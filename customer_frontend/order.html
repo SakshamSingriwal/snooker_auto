@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes">
+    <title>Menu - Snooker Cafe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎱 Table <span id="table-id">{{TABLE_ID}}</span></h1>
+        <p class="cafe-name">Snooker Cafe</p>
+    </div>
+    
+    <div class="search-bar">
+        <input type="text" id="search" placeholder="🔍 Search menu items..." onkeyup="filterMenu()">
+    </div>
+    
+    <div id="menu"></div>
+    
+    <div class="radio-group">
+        <label><input type="radio" name="customerType" value="table" checked> Playing on this table</label>
+        <label><input type="radio" name="customerType" value="seating"> Seating only (food/drink)</label>
+    </div>
+    
+    <div class="cart-section">
+        <div class="cart" id="cart">
+            <span id="cart-count">0 items</span>
+            <span id="cart-total" class="total">₹0.00</span>
+        </div>
+        <div class="special-requests">
+            <input type="text" id="special" placeholder="Special requests (optional)...">
+        </div>
+    </div>
+    
+    <button id="place-order" class="pulse">📞 PLACE ORDER</button>
+    
+    <div id="status" style="margin-top:10px;"></div>
+    <div id="success-overlay" class="success-overlay hidden">
+        <div class="success-content">
+            <div class="snooker-animation">🎱</div>
+            <h2>Order Placed!</h2>
+            <p id="order-id">Order #0</p>
+            <p>Estimated prep: <span id="prep-time">5-10 min</span></p>
+            <button onclick="closeSuccess()">OK</button>
+        </div>
+    </div>
+</div>
+<script>
+    const TABLE_ID = {{TABLE_ID}};
+    let products = [];
+    let cart = [];
+
+    async function loadMenu() {
+        try {
+            const res = await fetch('/api/products');
+            products = await res.json();
+            renderMenu();
+        } catch (e) {
+            document.getElementById('menu').innerHTML = '<p style="color:red;text-align:center;padding:20px;">Failed to load menu.<br>Check connection.</p>';
+        }
+    }
+
+    function renderMenu() {
+        const container = document.getElementById('menu');
+        container.innerHTML = '';
+        const categories = [...new Set(products.map(p => p.category))];
+        const catIcons = {food: '🍔', drink: '🥤', hookah: '💨'};
+        const catColors = {food: '#ff7f0e', drink: '#1a5276', hookah: '#8E44AD'};
+        
+        for (let cat of categories) {
+            const catDiv = document.createElement('div');
+            catDiv.className = 'category-section';
+            catDiv.innerHTML = `
+                <div class="category-header" style="border-left-color: ${catColors[cat]}">
+                    <span class="cat-icon">${catIcons[cat] || '📦'}</span>
+                    <span>${cat.toUpperCase()}</span>
+                </div>
+            `;
+            products.filter(p => p.category === cat).forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                div.setAttribute('data-name', p.name.toLowerCase());
+                const qty = (cart.find(i => i.product_id === p.id) || {quantity: 0}).quantity;
+                div.innerHTML = `
+                    <div class="item-info">
+                        <span class="item-name">${p.name}</span>
+                        <span class="item-price">₹${p.price}</span>
+                    </div>
+                    <div class="qty-controls">
+                        ${qty > 0 ? `<button class="qty-btn minus" onclick="removeFromCart(${p.id})">−</button>
+                                     <span class="qty">${qty}</span>` : ''}
+                        <button class="qty-btn plus" onclick="addToCart(${p.id})">+</button>
+                    </div>
+                `;
+                catDiv.appendChild(div);
+            });
+            container.appendChild(catDiv);
+        }
+    }
+
+    function addToCart(pid) {
+        const existing = cart.find(i => i.product_id === pid);
+        if (existing) existing.quantity++;
+        else cart.push({ product_id: pid, quantity: 1 });
+        updateCartDisplay();
+        renderMenu();
+    }
+
+    function removeFromCart(pid) {
+        const existing = cart.find(i => i.product_id === pid);
+        if (existing) {
+            existing.quantity--;
+            if (existing.quantity <= 0) cart = cart.filter(i => i.product_id !== pid);
+        }
+        updateCartDisplay();
+        renderMenu();
+    }
+
+    function filterMenu() {
+        const term = document.getElementById('search').value.toLowerCase();
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.style.display = item.getAttribute('data-name').includes(term) ? 'flex' : 'none';
+        });
+    }
+
+    function updateCartDisplay() {
+        const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
+        const totalPrice = cart.reduce((sum, item) => {
+            const prod = products.find(p => p.id === item.product_id);
+            return sum + (prod ? prod.price * item.quantity : 0);
+        }, 0);
+        document.getElementById('cart-count').textContent = `${totalQty} items`;
+        document.getElementById('cart-total').textContent = `₹${totalPrice.toFixed(2)}`;
+    }
+
+    async function placeOrder() {
+        const customerType = document.querySelector('input[name="customerType"]:checked').value;
+        
+        if (cart.length === 0) { 
+            alert("Your cart is empty"); 
+            return; 
+        }
+        
+        const special = document.getElementById('special').value;
+        
+        const payload = {
+            table_id: TABLE_ID,
+            customer_type: customerType,
+            items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
+            special_requests: special || null
+        };
+        
+        try {
+            const res = await fetch('/api/order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            // Show success overlay
+            document.getElementById('success-overlay').classList.remove('hidden');
+            document.getElementById('order-id').textContent = `Order #${data.order_id}`;
+            
+            cart = [];
+            document.getElementById('special').value = '';
+            updateCartDisplay();
+            renderMenu();
+        } catch (e) {
+            document.getElementById('status').innerHTML = `<p style="color:#c0392b;text-align:center;">Error: ${e.message}</p>`;
+        }
+    }
+
+    function closeSuccess() {
+        document.getElementById('success-overlay').classList.add('hidden');
+    }
+
+    document.getElementById('place-order').addEventListener('click', placeOrder);
+    loadMenu();
+</script>
+</body>
+</html>
