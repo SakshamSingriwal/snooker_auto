@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
 from datetime import datetime
+from typing import List, Dict, Optional, Tuple
 
 DB_PATH = Path(__file__).parent.parent / "data" / "snooker.db"
 
@@ -211,7 +212,7 @@ def add_product(name, category, price):
     conn.close()
     return True
 
-def update_product(product_id, name=None, price=None):
+def update_product(product_id, name=None, price=None, current_stock=None, min_stock_threshold=None):
     if price is not None and price < 0:
         return None
     conn = get_conn()
@@ -219,6 +220,10 @@ def update_product(product_id, name=None, price=None):
         conn.execute("UPDATE products SET name=? WHERE id=?", (name, product_id))
     if price is not None:
         conn.execute("UPDATE products SET price=? WHERE id=?", (price, product_id))
+    if current_stock is not None:
+        conn.execute("UPDATE products SET current_stock=? WHERE id=?", (current_stock, product_id))
+    if min_stock_threshold is not None:
+        conn.execute("UPDATE products SET min_stock_threshold=? WHERE id=?", (min_stock_threshold, product_id))
     conn.commit()
     conn.close()
     return True
@@ -306,6 +311,46 @@ def get_pending_orders_by_table(table_id):
 def complete_order(order_id):
     conn = get_conn()
     conn.execute("UPDATE orders SET status='completed' WHERE id=?", (order_id,))
+    conn.commit()
+    conn.close()
+
+def update_order_status(order_id: int, status: str):
+    conn = get_conn()
+    conn.execute("UPDATE orders SET status=? WHERE id=?", (status, order_id))
+    conn.commit()
+    conn.close()
+
+def get_order_status(order_id: int) -> str:
+    conn = get_conn()
+    row = conn.execute("SELECT status FROM orders WHERE id=?", (order_id,)).fetchone()
+    conn.close()
+    return row["status"] if row else "unknown"
+
+def update_order_items(order_id: int, items: List[Dict]):
+    conn = get_conn()
+    # Delete old items
+    conn.execute("DELETE FROM order_items WHERE order_id=?", (order_id,))
+    
+    # Calculate total
+    total = 0
+    for item in items:
+        product = conn.execute("SELECT price FROM products WHERE id=?", (item["product_id"],)).fetchone()
+        if product:
+            total += product["price"] * item["quantity"]
+        
+        # Insert new items
+        conn.execute(
+            "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)",
+            (order_id, item["product_id"], item["quantity"], product["price"] if product else 0)
+        )
+    
+    conn.execute("UPDATE orders SET total_amount=? WHERE id=?", (round(total, 2), order_id))
+    conn.commit()
+    conn.close()
+
+def set_order_tag(order_id: int, tag: str):
+    conn = get_conn()
+    conn.execute("UPDATE orders SET tag=? WHERE id=?", (tag, order_id))
     conn.commit()
     conn.close()
 

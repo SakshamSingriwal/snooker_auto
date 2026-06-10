@@ -14,6 +14,12 @@
         <p class="cafe-name">Snooker Cafe</p>
     </div>
     
+    <!-- Favorites Section -->
+    <div id="favourites-section" class="favourites-section hidden">
+        <div class="section-title">⭐ Quick Reorder</div>
+        <div id="favourites-list" class="favourites-list"></div>
+    </div>
+    
     <div class="search-bar">
         <input type="text" id="search" placeholder="🔍 Search menu items..." onkeyup="filterMenu()">
     </div>
@@ -38,6 +44,17 @@
     <button id="place-order" class="pulse">📞 PLACE ORDER</button>
     
     <div id="status" style="margin-top:10px;"></div>
+    
+    <!-- Order Status Polling Section -->
+    <div id="order-status-section" class="order-status-section hidden">
+        <div class="section-title">📋 Your Order Status</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div id="order-status-text" class="order-status-text"></div>
+    </div>
+    
+    <!-- Success Overlay -->
     <div id="success-overlay" class="success-overlay hidden">
         <div class="success-content">
             <div class="snooker-animation">🎱</div>
@@ -47,17 +64,58 @@
             <button onclick="closeSuccess()">OK</button>
         </div>
     </div>
+    
+    <!-- Suggestions Modal -->
+    <div id="suggestions-modal" class="suggestions-modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💡 You might also like</h3>
+                <button onclick="closeSuggestions()" class="close-btn">✕</button>
+            </div>
+            <div id="suggestions-list" class="suggestions-list"></div>
+        </div>
+    </div>
 </div>
 <script>
     const TABLE_ID = {{TABLE_ID}};
     let products = [];
     let cart = [];
+    let currentOrderId = null;
+    let statusPollInterval = null;
 
+    // ── FAVOURITES (localStorage) ─────────────────────────────
+    function loadFavourites() {
+        const favs = JSON.parse(localStorage.getItem('snooker_favourites') || '[]');
+        if (favs.length > 0) {
+            document.getElementById('favourites-section').classList.remove('hidden');
+            const list = document.getElementById('favourites-list');
+            list.innerHTML = '';
+            favs.slice(0, 5).forEach(pid => {
+                const prod = products.find(p => p.id === pid);
+                if (prod) {
+                    const btn = document.createElement('button');
+                    btn.className = 'fav-btn';
+                    btn.innerHTML = `<span>${prod.name}</span>`;
+                    btn.onclick = () => addToCart(pid);
+                    list.appendChild(btn);
+                }
+            });
+        }
+    }
+
+    function saveFavourites(productIds) {
+        const favs = JSON.parse(localStorage.getItem('snooker_favourites') || '[]');
+        const unique = [...new Set([...productIds, ...favs])].slice(0, 5);
+        localStorage.setItem('snooker_favourites', JSON.stringify(unique));
+    }
+
+    // ── MENU LOADING ─────────────────────────────
     async function loadMenu() {
         try {
             const res = await fetch('/api/products');
             products = await res.json();
             renderMenu();
+            loadFavourites();
         } catch (e) {
             document.getElementById('menu').innerHTML = '<p style="color:red;text-align:center;padding:20px;">Failed to load menu.<br>Check connection.</p>';
         }
@@ -101,12 +159,15 @@
         }
     }
 
+    // ── CART FUNCTIONS ─────────────────────────────
     function addToCart(pid) {
         const existing = cart.find(i => i.product_id === pid);
         if (existing) existing.quantity++;
         else cart.push({ product_id: pid, quantity: 1 });
         updateCartDisplay();
         renderMenu();
+        // Show suggestions after adding
+        showSuggestions(pid);
     }
 
     function removeFromCart(pid) {
@@ -136,6 +197,41 @@
         document.getElementById('cart-total').textContent = `₹${totalPrice.toFixed(2)}`;
     }
 
+    // ── SUGGESTIONS ─────────────────────────────
+    async function showSuggestions(product_id) {
+        try {
+            const res = await fetch(`/api/suggestions/${product_id}`);
+            const data = await res.json();
+            if (data.suggestions && data.suggestions.length > 0) {
+                const list = document.getElementById('suggestions-list');
+                list.innerHTML = '';
+                data.suggestions.forEach(combo => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-card';
+                    div.innerHTML = `
+                        <div class="suggestion-name">${combo.name}</div>
+                        <div class="suggestion-items">${combo.item_name || 'Combo item'}</div>
+                        <button onclick="addComboToCart(${combo.id})">Add for ₹${combo.price || '???'}</button>
+                    `;
+                    list.appendChild(div);
+                });
+                document.getElementById('suggestions-modal').classList.remove('hidden');
+            }
+        } catch (e) {
+            console.log('No suggestions available');
+        }
+    }
+
+    function closeSuggestions() {
+        document.getElementById('suggestions-modal').classList.add('hidden');
+    }
+
+    async function addComboToCart(combo_id) {
+        // This would add combo items to cart - simplified for now
+        closeSuggestions();
+    }
+
+    // ── ORDER PLACEMENT ─────────────────────────────
     async function placeOrder() {
         const customerType = document.querySelector('input[name="customerType"]:checked').value;
         
@@ -161,21 +257,79 @@
             });
             const data = await res.json();
             
-            // Show success overlay
-            document.getElementById('success-overlay').classList.remove('hidden');
-            document.getElementById('order-id').textContent = `Order #${data.order_id}`;
+            // Save to favourites
+            saveFavourites(cart.map(i => i.product_id));
             
+            // Show order tracking
+            currentOrderId = data.order_id;
+            document.getElementById('order-status-section').classList.remove('hidden');
+            startStatusPolling();
+            
+            // Reset cart
             cart = [];
             document.getElementById('special').value = '';
             updateCartDisplay();
             renderMenu();
+            
         } catch (e) {
             document.getElementById('status').innerHTML = `<p style="color:#c0392b;text-align:center;">Error: ${e.message}</p>`;
         }
     }
 
+    // ── ORDER STATUS POLLING ─────────────────────────────
+    function startStatusPolling() {
+        if (statusPollInterval) clearInterval(statusPollInterval);
+        
+        statusPollInterval = setInterval(async () => {
+            if (!currentOrderId) return;
+            
+            try {
+                const res = await fetch(`/api/order/${currentOrderId}/status`);
+                const data = await res.json();
+                updateProgressBar(data.status);
+                
+                // Show notification when ready
+                if (data.status === 'ready') {
+                    clearInterval(statusPollInterval);
+                    showNotification('Your order is ready! 🎱');
+                }
+            } catch (e) {
+                console.log('Status check failed');
+            }
+        }, 3000);
+    }
+
+    function updateProgressBar(status) {
+        const bar = document.getElementById('progress-bar');
+        const text = document.getElementById('order-status-text');
+        
+        const statusMap = {
+            'pending': { width: '25%', text: 'Order received ✓' },
+            'preparing': { width: '50%', text: 'Preparing your order 🍳' },
+            'ready': { width: '100%', text: 'Ready for pickup! 🎉' }
+        };
+        
+        if (statusMap[status]) {
+            bar.style.width = statusMap[status].width;
+            bar.className = `progress-bar status-${status}`;
+            text.textContent = statusMap[status].text;
+        }
+    }
+
+    function showNotification(message) {
+        if (Notification.permission === 'granted') {
+            new Notification('Snooker Cafe', { body: message });
+        }
+    }
+
+    // ── SUCCESS OVERLAY ─────────────────────────────
     function closeSuccess() {
         document.getElementById('success-overlay').classList.add('hidden');
+    }
+
+    // Request notification permission on load
+    if ('Notification' in window) {
+        Notification.requestPermission();
     }
 
     document.getElementById('place-order').addEventListener('click', placeOrder);

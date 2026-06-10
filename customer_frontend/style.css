@@ -163,6 +163,7 @@ body {
     100% { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0); }
 }
 
+/* ── SUCCESS OVERLAY ───────────────────────────── */
 .success-overlay {
     position: fixed;
     top: 0;
@@ -213,6 +214,139 @@ body {
     cursor: pointer;
 }
 
+/* ── FAVOURITES ───────────────────────────── */
+.favourites-section {
+    margin-bottom: 15px;
+}
+
+.favourites-section .section-title {
+    font-size: 14px;
+    color: var(--ball-yellow);
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.favourites-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 5px 0;
+}
+
+.fav-btn {
+    background: var(--felt-light);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* ── ORDER STATUS ───────────────────────────── */
+.order-status-section {
+    background: var(--pocket-black);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+}
+
+.order-status-section .section-title {
+    font-size: 14px;
+    color: var(--ball-yellow);
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.progress-container {
+    background: #1a2b1e;
+    border-radius: 10px;
+    height: 20px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--felt-green);
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+.progress-bar.status-pending { background: var(--ball-yellow); }
+.progress-bar.status-preparing { background: var(--ball-blue); }
+.progress-bar.status-ready { background: var(--ball-pink); }
+
+.order-status-text {
+    text-align: center;
+    font-size: 14px;
+    color: var(--chalk-white);
+    margin-top: 5px;
+}
+
+/* ── SUGGESTIONS MODAL ───────────────────────────── */
+.suggestions-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.suggestions-modal.hidden { display: none; }
+
+.modal-content {
+    background: var(--pocket-black);
+    padding: 20px;
+    border-radius: 15px;
+    max-width: 350px;
+    width: 90%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--ball-yellow);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--chalk-white);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.suggestion-card {
+    background: var(--felt-green);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.suggestion-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* ── RADIO GROUP ───────────────────────────── */
 .radio-group {
     margin: 15px 0;
     display: flex;
